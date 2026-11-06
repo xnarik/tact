@@ -235,16 +235,10 @@ A style is a saved recipe for rewriting a message. Each one has:
 
 ## How it works
 
-```mermaid
-flowchart LR
-    A[Press the shortcut] --> B[Read the message box]
-    B --> C[Show the panel]
-    C --> D[Stream the rewrite]
-    D --> E{Your choice}
-    E -->|Return| F[Replace the text]
-    E -->|Type a change| D
-    E -->|Esc| G[Close, nothing changes]
-```
+1. You press the shortcut.
+2. Tact reads your message box.
+3. The panel opens above the box, and the rewrite streams in.
+4. You press Return to replace your text, type a change to try again, or press Esc to close with nothing changed.
 
 **Reading your message.** Tact asks macOS Accessibility for the selected text, then for the contents of the message box. Web-based chat apps often hide their text from Accessibility, so Tact falls back to copying it, then uses your clipboard if that fails.
 
