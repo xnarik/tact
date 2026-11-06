@@ -32,6 +32,7 @@ Type a message, press <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>R</kbd>, and press <kbd
 - [Keyboard shortcuts](#keyboard-shortcuts)
 - [Supported providers](#supported-providers)
 - [Styles](#styles)
+- [Appearance](#appearance)
 - [Privacy and security](#privacy-and-security)
 - [How it works](#how-it-works)
 - [Troubleshooting](#troubleshooting)
@@ -52,6 +53,7 @@ Type a message, press <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>R</kbd>, and press <kbd
 - **Instant fix.** A second shortcut rewrites your message in place with no panel.
 - **Bring your own key.** Use Anthropic, OpenAI, Google, xAI, Mistral, DeepSeek, Groq or OpenRouter, a local model, or your own server.
 - **Always-current models.** Model lists come directly from each provider, so new models appear without an update.
+- **Themes you can read.** Choose light, dark or Match macOS, plus six color themes, each tested for clear contrast.
 - **Private by design.** Keys stay in your Mac's Keychain, and Tact has no server and no analytics.
 
 <table>
@@ -216,6 +218,19 @@ A style is a saved recipe for rewriting a message. Each one has:
 
 **Settings → Styles → New style** also offers 16 templates, including Email, Follow-up, Sensitive message, Meeting summary and Customer support.
 
+## Appearance
+
+Open **Settings → Appearance** to choose a mode and a color theme. Changes apply right away.
+
+- **Mode:** Match macOS, Light or Dark
+- **Color theme:** Mint, Ocean, Plum, Ember, Forest or High contrast
+
+<p align="center">
+  <img src="docs/screenshots/appearance.png" width="640" alt="Appearance settings with six color themes">
+</p>
+
+Every window uses solid colors, so a busy or dark app behind Tact can't wash out your text. Automated tests check every theme in both modes against [WCAG](https://www.w3.org/TR/WCAG21/#contrast-enhanced) contrast standards. Message text reaches at least 7:1, and other text at least 4.5:1.
+
 ## Privacy and security
 
 | What | Where it goes |
@@ -311,7 +326,7 @@ Tact is an early release, version 0.1.0.
 | Area | Status |
 |---|---|
 | Build and install | Tested on macOS 27 with Xcode 27, Apple silicon |
-| Prompts, streaming parsers, storage | Covered by 20 automated tests |
+| Prompts, streaming parsers, storage, theme contrast | Covered by 24 automated tests |
 | Provider addresses and key rejection | Checked against live services, except DeepSeek, which couldn't be reached from the test network |
 | Full rewrites with a real API key | Not yet tested |
 | Reading and replacing text in chat apps | Not yet tested in real chat apps |

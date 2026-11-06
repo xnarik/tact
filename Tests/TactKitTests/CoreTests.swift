@@ -261,6 +261,64 @@ final class CoreTests: XCTestCase {
         XCTAssertFalse(combos.contains { $0.keyCode == 49 })
     }
 
+    // MARK: Themes
+
+    /// Message text must meet WCAG AAA (7:1) and everything else AA, in every theme and mode.
+    func testEveryThemeIsReadable() {
+        for theme in ColorTheme.all {
+            for (mode, c) in [("light", theme.light), ("dark", theme.dark)] {
+                let name = "\(theme.name) \(mode)"
+                func check(_ what: String, _ a: UInt32, _ b: UInt32, atLeast minimum: Double) {
+                    let ratio = Contrast.ratio(a, b)
+                    XCTAssertGreaterThanOrEqual(ratio, minimum, "\(name): \(what) is only \(String(format: "%.2f", ratio)):1")
+                }
+                check("message text", c.text, c.card, atLeast: 7)
+                check("text on background", c.text, c.background, atLeast: 7)
+                check("text on controls", c.text, c.control, atLeast: 7)
+                check("text on selected", c.text, c.selected, atLeast: 4.5)
+                check("secondary on background", c.secondaryText, c.background, atLeast: 4.5)
+                check("secondary on card", c.secondaryText, c.card, atLeast: 4.5)
+                check("secondary on controls", c.secondaryText, c.control, atLeast: 4.5)
+                check("button label", c.onAccent, c.accent, atLeast: 4.5)
+                check("added words", c.added, c.addedBackground, atLeast: 4.5)
+                check("removed words", c.removed, c.card, atLeast: 4.5)
+                check("connected status", c.success, c.background, atLeast: 4.5)
+                check("accent text on background", c.accent, c.background, atLeast: 4.5)
+                check("borders against background", c.border, c.background, atLeast: 3)
+                check("borders against card", c.border, c.card, atLeast: 3)
+            }
+        }
+    }
+
+    func testContrastFormulaMatchesKnownValues() {
+        XCTAssertEqual(Contrast.ratio(0x000000, 0xFFFFFF), 21, accuracy: 0.01)
+        XCTAssertEqual(Contrast.ratio(0x777777, 0xFFFFFF), 4.48, accuracy: 0.01)
+        XCTAssertEqual(Contrast.ratio(0xFFFFFF, 0xFFFFFF), 1, accuracy: 0.01)
+    }
+
+    func testUnknownThemeFallsBackAndOldSettingsGetTheDefault() throws {
+        XCTAssertEqual(ColorTheme.named("nonexistent").id, ColorTheme.defaultID)
+        XCTAssertEqual(Set(ColorTheme.all.map(\.id)).count, ColorTheme.all.count)
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data("{}".utf8))
+        XCTAssertEqual(settings.themeID, ColorTheme.defaultID)
+    }
+
+    @MainActor
+    func testChangingThemeUpdatesActiveThemeAndPersists() {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer {
+            try? FileManager.default.removeItem(at: folder)
+            ActiveTheme.current = ColorTheme.named(ColorTheme.defaultID)
+        }
+        let store = AppStore(directory: folder)
+        store.settings.themeID = "ocean"
+        XCTAssertEqual(ActiveTheme.current.id, "ocean")
+
+        ActiveTheme.current = ColorTheme.named(ColorTheme.defaultID)
+        _ = AppStore(directory: folder)
+        XCTAssertEqual(ActiveTheme.current.id, "ocean", "A saved theme must apply on launch")
+    }
+
     // MARK: Storage
 
     @MainActor

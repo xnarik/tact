@@ -34,19 +34,17 @@ public enum SnapshotRenderer {
         }
 
         func panel(_ session: RewriteSession) -> some View {
-            RewritePanelView(session: session, actions: actions, useGlass: false)
+            RewritePanelView(session: session, actions: actions)
         }
 
         func settings(_ tab: SettingsTab) -> some View {
             let router = SettingsRouter()
             router.tab = tab
             return SettingsView(store: store, router: router, bridge: bridge, hotkeys: control)
-                .background(Color(nsColor: .windowBackgroundColor))
         }
 
         func setup(_ step: SetupView.Step) -> some View {
             SetupView(store: store, bridge: bridge, onFinish: {}, step: step)
-                .background(Color(nsColor: .windowBackgroundColor))
         }
 
         for (mode, appearance) in [("dark", NSAppearance.Name.darkAqua), ("light", NSAppearance.Name.aqua)] {
@@ -65,6 +63,12 @@ public enum SnapshotRenderer {
             for tab in SettingsTab.allCases {
                 try save("settings-\(tab.rawValue.lowercased())", settings(tab))
             }
+            for theme in ColorTheme.all {
+                store.settings.themeID = theme.id
+                try save("theme-\(theme.id)", panel(session(.result)))
+                try save("theme-\(theme.id)-changes", panel(session(.changes)))
+            }
+            store.settings.themeID = ColorTheme.defaultID
         }
     }
 
@@ -85,39 +89,8 @@ public enum SnapshotRenderer {
         for (points, scale) in [(16, 1), (16, 2), (32, 1), (32, 2), (128, 1), (128, 2), (256, 1), (256, 2), (512, 1), (512, 2)] {
             let pixels = points * scale
             let suffix = scale == 2 ? "@2x" : ""
-            let data = iconPNG(pixels: pixels)
+            let data = AppIcon.png(pixels: pixels, margin: true)
             try data?.write(to: directory.appendingPathComponent("icon_\(points)x\(points)\(suffix).png"))
         }
-    }
-
-    private static func iconPNG(pixels: Int) -> Data? {
-        guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels, bitsPerSample: 8,
-                                         samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
-                                         bytesPerRow: 0, bitsPerPixel: 0) else { return nil }
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
-        let s = CGFloat(pixels)
-
-        // macOS icons leave a margin around the rounded square.
-        let tile = CGRect(x: s * 0.1, y: s * 0.1, width: s * 0.8, height: s * 0.8)
-        NSColor(red: 0.369, green: 0.859, blue: 0.753, alpha: 1).setFill()
-        NSBezierPath(roundedRect: tile, xRadius: s * 0.18, yRadius: s * 0.18).fill()
-
-        let ink = NSColor(red: 0.043, green: 0.082, blue: 0.071, alpha: 1)
-        ink.setFill()
-        let bubble = NSBezierPath(roundedRect: CGRect(x: s * 0.24, y: s * 0.36, width: s * 0.52, height: s * 0.38), xRadius: s * 0.09, yRadius: s * 0.09)
-        bubble.move(to: CGPoint(x: s * 0.34, y: s * 0.38))
-        bubble.line(to: CGPoint(x: s * 0.30, y: s * 0.25))
-        bubble.line(to: CGPoint(x: s * 0.47, y: s * 0.38))
-        bubble.close()
-        bubble.fill()
-
-        NSColor(red: 0.369, green: 0.859, blue: 0.753, alpha: 1).setFill()
-        for (y, width) in [(CGFloat(0.59), CGFloat(0.34)), (0.49, 0.22)] {
-            NSBezierPath(roundedRect: CGRect(x: s * 0.33, y: s * y, width: s * width, height: s * 0.05), xRadius: s * 0.025, yRadius: s * 0.025).fill()
-        }
-
-        NSGraphicsContext.restoreGraphicsState()
-        return rep.representation(using: .png, properties: [:])
     }
 }

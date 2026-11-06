@@ -34,7 +34,12 @@ struct SetupView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            stepper.padding(.bottom, 32)
+            HStack {
+                BrandMark()
+                Spacer()
+                stepper
+            }
+            .padding(.bottom, 28)
             switch step {
             case .key: keyStep
             case .permission: permissionStep
@@ -44,7 +49,8 @@ struct SetupView: View {
         .padding(.horizontal, 32)
         .padding(.top, 20)
         .padding(.bottom, 24)
-        .frame(width: 640, height: 500, alignment: .topLeading)
+        .frame(width: 680, height: 500, alignment: .topLeading)
+        .themedBase()
         .onReceive(timer) { _ in trusted = bridge.isTrusted }
         .onAppear { trusted = bridge.isTrusted }
     }
@@ -56,11 +62,11 @@ struct SetupView: View {
                     Text("\(item.rawValue + 1)")
                         .font(.system(size: 12, weight: .semibold))
                         .frame(width: 22, height: 22)
-                        .foregroundStyle(item.rawValue <= step.rawValue ? Color.onAccent : Color.secondary)
+                        .foregroundStyle(item.rawValue <= step.rawValue ? Color.onAccent : Color.textSecondary)
                         .background(Circle().fill(item.rawValue <= step.rawValue ? Color.tactAccent : Color.surface))
                     Text(item.title)
                         .font(.system(size: 13, weight: item == step ? .semibold : .regular))
-                        .foregroundStyle(item == step ? Color.primary : Color.secondary)
+                        .foregroundStyle(item == step ? Color.textPrimary : Color.textSecondary)
                 }
                 if item != .done {
                     Rectangle().fill(Color.hairline).frame(width: 28, height: 1)
@@ -72,7 +78,7 @@ struct SetupView: View {
     private func heading(_ title: String, _ detail: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.system(size: 26, weight: .semibold))
-            Text(detail).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Text(detail).foregroundStyle(Color.textSecondary).fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -81,8 +87,8 @@ struct SetupView: View {
             heading("Paste an API key", "From any provider. Tact works out which one it is and picks a quick model for you.")
 
             VStack(alignment: .leading, spacing: 6) {
-                SecureField("Paste here", text: $key)
-                    .inputField()
+                SecureField("", text: $key)
+                    .inputField(placeholder: "Paste here", text: key)
                     .onChange(of: key) { _, new in
                         // The field is cleared after a successful check, which must not undo the result.
                         if !new.isEmpty { keyState = .empty }
@@ -104,13 +110,13 @@ struct SetupView: View {
                     Text("Need a key?")
                     ForEach(["anthropic", "openai", "google", "openrouter"], id: \.self) { id in
                         if let provider = Provider.named(id), let page = provider.keyPage, let url = URL(string: page) {
-                            Link(provider.name, destination: url).underline().foregroundStyle(Color.primary)
+                            Link(provider.name, destination: url).underline().foregroundStyle(Color.textPrimary)
                         }
                     }
                 }
             }
             .font(.system(size: 13))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.textSecondary)
 
             Spacer()
             HStack {
@@ -132,10 +138,10 @@ struct SetupView: View {
         case .empty:
             if let first = candidates.first {
                 Text("Looks like \(candidates.count > 1 ? candidates.map(\.name).joined(separator: " or ") : first.name)")
-                    .font(.system(size: 13)).foregroundStyle(.secondary)
+                    .font(.system(size: 13)).foregroundStyle(Color.textSecondary)
             }
         case .checking:
-            Text("Checking the key...").font(.system(size: 13)).foregroundStyle(.secondary)
+            Text("Checking the key...").font(.system(size: 13)).foregroundStyle(Color.textSecondary)
         case .connected(let summary):
             Text(summary).font(.system(size: 13)).foregroundStyle(Color.connected)
         case .failed(let message):
@@ -167,7 +173,7 @@ struct SetupView: View {
                     Text("Accessibility").fontWeight(.semibold)
                     Text(trusted ? "Allowed" : "Turn on Tact in the list, then come back here")
                         .font(.system(size: 13))
-                        .foregroundStyle(trusted ? Color.connected : Color.secondary)
+                        .foregroundStyle(trusted ? Color.connected : Color.textSecondary)
                 }
                 Spacer()
                 if !trusted {
@@ -219,7 +225,7 @@ struct SetupView: View {
                      ? "Results will be copied for you to paste. You can allow text replacement later in Settings."
                      : "Press Return in the panel and the new version goes straight into your message box.")
             }
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.textSecondary)
 
             Spacer()
             HStack {

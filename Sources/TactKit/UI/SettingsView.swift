@@ -4,7 +4,7 @@ import ServiceManagement
 import SwiftUI
 
 enum SettingsTab: String, CaseIterable, Identifiable {
-    case models = "Models", styles = "Styles", shortcuts = "Shortcuts", history = "History", general = "General"
+    case models = "Models", styles = "Styles", shortcuts = "Shortcuts", appearance = "Appearance", history = "History", general = "General"
     var id: String { rawValue }
 }
 
@@ -23,13 +23,16 @@ struct SettingsView: View {
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
+                BrandMark()
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 16)
                 ForEach(SettingsTab.allCases) { tab in
                     Button { router.tab = tab } label: {
                         Text(tab.rawValue)
                             .fontWeight(router.tab == tab ? .semibold : .regular)
                             .padding(.horizontal, 12)
                             .frame(maxWidth: .infinity, minHeight: 34, alignment: .leading)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(router.tab == tab ? Color.surfaceStrong : .clear))
+                            .background(RoundedRectangle(cornerRadius: 8).fill(router.tab == tab ? Color.surface : .clear))
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -39,9 +42,9 @@ struct SettingsView: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 20)
             .frame(width: 180)
-            .background(Color.surface.opacity(0.5))
+            .background(Color.cardFill)
 
-            Divider()
+            ThemedDivider(vertical: true)
 
             ScrollView {
                 Group {
@@ -49,6 +52,7 @@ struct SettingsView: View {
                     case .models: ModelsTab(store: store)
                     case .styles: StylesTab(store: store)
                     case .shortcuts: ShortcutsTab(store: store, hotkeys: hotkeys)
+                    case .appearance: AppearanceTab(store: store)
                     case .history: HistoryTab(store: store, bridge: bridge)
                     case .general: GeneralTab(store: store, bridge: bridge)
                     }
@@ -59,6 +63,9 @@ struct SettingsView: View {
             }
         }
         .frame(width: 900, height: 640)
+        .themedBase()
+        // Colors resolve when drawn, so a new theme needs a fresh draw of everything.
+        .id(store.settings.themeID)
     }
 }
 
@@ -69,7 +76,7 @@ private struct TabHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title).font(.system(size: 22, weight: .semibold))
-            if let detail { Text(detail).foregroundStyle(.secondary) }
+            if let detail { Text(detail).foregroundStyle(Color.textSecondary) }
         }
     }
 }
@@ -142,7 +149,7 @@ private struct ModelsTab: View {
 
             Card {
                 ForEach(Array(Provider.all.enumerated()), id: \.element.id) { index, provider in
-                    if index > 0 { Divider() }
+                    if index > 0 { ThemedDivider() }
                     ProviderRow(store: store, provider: provider)
                 }
             }
@@ -165,7 +172,7 @@ private struct ProviderRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
                 Text(provider.name).fontWeight(.medium)
-                Text(provider.note).font(.system(size: 13)).foregroundStyle(.secondary)
+                Text(provider.note).font(.system(size: 13)).foregroundStyle(Color.textSecondary)
                 Spacer()
                 if isConnected { Text("Connected").font(.system(size: 13)).foregroundStyle(Color.connected) }
                 Button(isOpen ? "Close" : isConnected ? "Manage" : provider.needsKey ? "Add key" : "Set up") {
@@ -187,11 +194,11 @@ private struct ProviderRow: View {
     private var details: some View {
         VStack(alignment: .leading, spacing: 8) {
             if provider.isLocal {
-                TextField("Server address, like http://localhost:11434/v1", text: $address).inputField()
+                TextField("", text: $address).inputField(placeholder: "Server address, like http://localhost:11434/v1", text: address)
             }
             if !isConnected || provider.isLocal {
                 HStack(spacing: 8) {
-                    SecureField(provider.needsKey ? "Paste your \(provider.name) API key" : "API key, if your server needs one", text: $key).inputField()
+                    SecureField("", text: $key).inputField(placeholder: provider.needsKey ? "Paste your \(provider.name) API key" : "API key, if your server needs one", text: key)
                     Button(isBusy ? "Checking..." : "Save and test", action: save)
                         .buttonStyle(PrimaryButtonStyle())
                         .disabled(isBusy || (provider.needsKey && key.isEmpty) || (provider.isLocal && address.isEmpty))
@@ -200,7 +207,7 @@ private struct ProviderRow: View {
             if isConnected {
                 HStack {
                     Text("\(store.models(for: provider).count) models. Key saved in Keychain.")
-                        .font(.system(size: 13)).foregroundStyle(.secondary)
+                        .font(.system(size: 13)).foregroundStyle(Color.textSecondary)
                     Spacer()
                     Button("Refresh models", action: refresh).buttonStyle(GhostButtonStyle())
                     Button("Remove") {
@@ -283,7 +290,7 @@ private struct StylesTab: View {
                             }
                             .padding(.horizontal, 10)
                             .frame(height: 36)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(position == index ? Color.surfaceStrong : .clear))
+                            .background(RoundedRectangle(cornerRadius: 8).fill(position == index ? Color.surface : .clear))
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -318,6 +325,7 @@ private struct StylesTab: View {
                     .padding(6)
                     .frame(height: 76)
                     .background(RoundedRectangle(cornerRadius: 9).fill(Color.surface))
+                    .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Color.hairline))
             }
 
             HStack(alignment: .top, spacing: 24) {
@@ -349,7 +357,7 @@ private struct StylesTab: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 FieldLabel("Pick this style on its own in these apps")
-                TextField("Slack, Teams", text: $store.settings.styles[index].apps).inputField()
+                TextField("", text: $store.settings.styles[index].apps).inputField(placeholder: "Slack, Teams", text: store.settings.styles[index].apps)
             }
 
             HStack(spacing: 8) {
@@ -395,7 +403,7 @@ private struct ShortcutsTab: View {
 
             Card {
                 ForEach(Array(HotkeyAction.allCases.enumerated()), id: \.element) { index, action in
-                    if index > 0 { Divider() }
+                    if index > 0 { ThemedDivider() }
                     row(action)
                 }
             }
@@ -422,7 +430,7 @@ private struct ShortcutsTab: View {
         HStack {
             VStack(alignment: .leading, spacing: 1) {
                 Text(action.title).fontWeight(.medium)
-                Text(action.note).font(.system(size: 13)).foregroundStyle(.secondary)
+                Text(action.note).font(.system(size: 13)).foregroundStyle(Color.textSecondary)
             }
             Spacer()
             Button { recording == action ? stopRecording() : startRecording(action) } label: {
@@ -469,6 +477,99 @@ private struct ShortcutsTab: View {
     }
 }
 
+// MARK: Appearance
+
+private struct AppearanceTab: View {
+    @Bindable var store: AppStore
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            TabHeader(title: "Appearance", detail: "Changes apply right away. Every theme is checked for clear, readable text.")
+
+            VStack(alignment: .leading, spacing: 6) {
+                FieldLabel("Mode")
+                Picker("Mode", selection: $store.settings.appearance) {
+                    ForEach(Appearance.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .fixedSize()
+                .onChange(of: store.settings.appearance) { applyAppearance($1) }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                FieldLabel("Color theme")
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
+                    ForEach(ColorTheme.all) { theme in
+                        ThemeCard(theme: theme, colors: colorScheme == .dark ? theme.dark : theme.light,
+                                  isSelected: theme.id == store.settings.themeID) {
+                            store.settings.themeID = theme.id
+                            refreshWindowBackgrounds()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// A small sample drawn in the theme's own colors, whichever theme is active.
+private struct ThemeCard: View {
+    let theme: ColorTheme
+    let colors: ThemeColors
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Move to Wednesday?")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color(hex: colors.text))
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 7)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(Color(hex: colors.card)))
+                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color(hex: colors.border)))
+                    HStack(spacing: 5) {
+                        Spacer()
+                        Text("Copy")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Color(hex: colors.text))
+                            .padding(.horizontal, 7)
+                            .frame(height: 20)
+                            .background(RoundedRectangle(cornerRadius: 5).fill(Color(hex: colors.control)))
+                        Text("Replace")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color(hex: colors.onAccent))
+                            .padding(.horizontal, 7)
+                            .frame(height: 20)
+                            .background(RoundedRectangle(cornerRadius: 5).fill(Color(hex: colors.accent)))
+                    }
+                }
+                .padding(9)
+                .background(RoundedRectangle(cornerRadius: 9).fill(Color(hex: colors.background)))
+                .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Color(hex: colors.border)))
+
+                HStack(spacing: 6) {
+                    Text(theme.name).font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.tactAccent)
+                    }
+                }
+            }
+            .padding(8)
+            .background(RoundedRectangle(cornerRadius: 12).strokeBorder(isSelected ? Color.tactAccent : .clear, lineWidth: 2))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
 // MARK: History
 
 private struct HistoryTab: View {
@@ -496,11 +597,11 @@ private struct HistoryTab: View {
                 Button("Clear all") { store.clearHistory() }.buttonStyle(GhostButtonStyle(bordered: true))
             }
 
-            TextField("Search your past messages", text: $search).inputField()
+            TextField("", text: $search).inputField(placeholder: "Search your past messages", text: search)
 
             if entries.isEmpty {
                 Text(store.history.isEmpty ? "Messages you use will show up here." : "Nothing matches that search.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 24)
             }
@@ -522,7 +623,7 @@ private struct HistoryTab: View {
                     }
                     .buttonStyle(GhostButtonStyle())
                     .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
                     Text(entry.result).textSelection(.enabled)
                 }
                 .padding(.horizontal, 14)
@@ -549,31 +650,18 @@ private struct GeneralTab: View {
 
             Card {
                 row("Start when I log in", isOn: Binding(get: { startsAtLogin }, set: setLogin))
-                Divider()
+                ThemedDivider()
                 row("Show a Send button in the panel", isOn: $store.settings.showSend)
-                Divider()
+                ThemedDivider()
                 row("Keep my clipboard as it was after replacing text", isOn: $store.settings.restoreClipboard)
-                Divider()
+                ThemedDivider()
                 row("Reply in the same language as my draft", isOn: $store.settings.matchLanguage)
-                Divider()
-                HStack {
-                    Text("Appearance")
-                    Spacer()
-                    Picker("Appearance", selection: $store.settings.appearance) {
-                        ForEach(Appearance.allCases) { Text($0.rawValue).tag($0) }
-                    }
-                    .labelsHidden()
-                    .fixedSize()
-                    .onChange(of: store.settings.appearance) { applyAppearance($1) }
-                }
-                .padding(.horizontal, 14)
-                .frame(minHeight: 48)
-                Divider()
+                ThemedDivider()
                 HStack {
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Accessibility")
                         Text(trusted ? "Allowed. Tact can read and replace your message." : "Not allowed. Tact can only use your clipboard.")
-                            .font(.system(size: 13)).foregroundStyle(trusted ? Color.connected : Color.secondary)
+                            .font(.system(size: 13)).foregroundStyle(trusted ? Color.connected : Color.textSecondary)
                     }
                     Spacer()
                     if !trusted {
@@ -593,7 +681,7 @@ private struct GeneralTab: View {
             }
 
             Text("Your text goes straight from this Mac to the provider you picked. Tact has no server and no analytics.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
         }
         .onAppear { trusted = bridge.isTrusted }
         .onReceive(timer) { _ in trusted = bridge.isTrusted }

@@ -196,6 +196,8 @@ public final class AppController: NSObject, NSApplicationDelegate, NSMenuDelegat
         window.title = title
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
+        window.backgroundColor = .tactWindow
+        window.titlebarAppearsTransparent = true
         window.center()
         return window
     }

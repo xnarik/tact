@@ -10,11 +10,10 @@ struct PanelActions {
 }
 
 struct RewritePanelView: View {
-    static let size = CGSize(width: 680, height: 352)
+    static let size = CGSize(width: 680, height: 384)
 
     @Bindable var session: RewriteSession
     let actions: PanelActions
-    var useGlass = true
     @State private var copied = false
     @FocusState private var refineFocused: Bool
 
@@ -25,15 +24,13 @@ struct RewritePanelView: View {
             styleRow
             tabRow
             content
-            Divider().opacity(0.6)
+            ThemedDivider()
             refineRow
-            Divider().opacity(0.6)
+            ThemedDivider()
             footer
         }
         .frame(width: Self.size.width, height: Self.size.height)
-        .background {
-            if useGlass { GlassBackground() } else { Color(nsColor: .windowBackgroundColor) }
-        }
+        .themedBase()
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(Color.hairline))
         .task {
@@ -44,6 +41,16 @@ struct RewritePanelView: View {
     }
 
     private var styleRow: some View {
+        HStack(spacing: 10) {
+            AppIconView(size: 30)
+            styleChips
+        }
+        .padding(.leading, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
+    }
+
+    private var styleChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 ForEach(Array(session.store.styles.enumerated()), id: \.element.id) { index, style in
@@ -55,7 +62,7 @@ struct RewritePanelView: View {
                         .padding(.leading, 7)
                         .padding(.trailing, 11)
                         .frame(height: 32)
-                        .foregroundStyle(style.id == session.styleID ? Color.onAccent : Color.primary)
+                        .foregroundStyle(style.id == session.styleID ? Color.onAccent : Color.textPrimary)
                         .background(RoundedRectangle(cornerRadius: 9).fill(style.id == session.styleID ? Color.tactAccent : Color.surface))
                         .contentShape(Rectangle())
                     }
@@ -65,13 +72,11 @@ struct RewritePanelView: View {
                     Image(systemName: "plus").frame(width: 32, height: 32).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
                 .help("Edit styles")
             }
-            .padding(.horizontal, 16)
+            .padding(.trailing, 16)
         }
-        .padding(.top, 14)
-        .padding(.bottom, 10)
     }
 
     private var tabRow: some View {
@@ -81,7 +86,7 @@ struct RewritePanelView: View {
                     Button { session.tab = tab } label: {
                         Text(tab.rawValue)
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(session.tab == tab ? Color.primary : Color.secondary)
+                            .foregroundStyle(session.tab == tab ? Color.textPrimary : Color.textSecondary)
                             .padding(.horizontal, 12)
                             .frame(height: 26)
                             .background(RoundedRectangle(cornerRadius: 7).fill(session.tab == tab ? Color.surfaceStrong : .clear))
@@ -93,7 +98,7 @@ struct RewritePanelView: View {
             .padding(2)
             .background(RoundedRectangle(cornerRadius: 9).fill(Color.surface))
 
-            Text(session.sourceLabel).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(1)
+            Text(session.sourceLabel).font(.system(size: 12)).foregroundStyle(Color.textSecondary).lineLimit(1)
             Spacer(minLength: 0)
 
             if session.versions.count > 1 {
@@ -109,7 +114,7 @@ struct RewritePanelView: View {
                 }
                 .buttonStyle(.plain)
                 .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
             }
         }
         .padding(.horizontal, 16)
@@ -133,36 +138,38 @@ struct RewritePanelView: View {
     }
 
     private var resultView: some View {
-        ScrollView {
-            Group {
-                if session.currentText.isEmpty {
-                    Text(session.isStreaming ? "Writing..." : "").foregroundStyle(.secondary)
-                } else {
-                    Text(session.currentText).textSelection(.enabled)
-                }
+        messageCard {
+            if session.currentText.isEmpty {
+                Text(session.isStreaming ? "Writing..." : "").foregroundStyle(Color.textSecondary)
+            } else {
+                Text(session.currentText).foregroundStyle(Color.textPrimary).textSelection(.enabled)
             }
-            .font(.system(size: 15))
-            .lineSpacing(3)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 6)
         }
     }
 
-    private var changesView: some View {
+    /// The message gets its own solid card, so it stands apart from all the controls around it.
+    private func messageCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         ScrollView {
-            Group {
-                if let pieces = WordDiff.compare(session.draft, session.currentText) {
-                    Text(attributed(pieces)).textSelection(.enabled)
-                } else {
-                    Text("This message is too long to compare.").foregroundStyle(.secondary)
-                }
+            content()
+                .font(.system(size: 16))
+                .lineSpacing(4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 11)
+        }
+        .background(RoundedRectangle(cornerRadius: 11).fill(Color.cardFill))
+        .overlay(RoundedRectangle(cornerRadius: 11).strokeBorder(Color.hairline))
+        .padding(.horizontal, 16)
+        .padding(.bottom, 10)
+    }
+
+    private var changesView: some View {
+        messageCard {
+            if let pieces = WordDiff.compare(session.draft, session.currentText) {
+                Text(attributed(pieces)).foregroundStyle(Color.textPrimary).textSelection(.enabled)
+            } else {
+                Text("This message is too long to compare.").foregroundStyle(Color.textSecondary)
             }
-            .font(.system(size: 15))
-            .lineSpacing(3)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 6)
         }
     }
 
@@ -187,21 +194,22 @@ struct RewritePanelView: View {
     private var originalView: some View {
         HStack(alignment: .top, spacing: 10) {
             TextEditor(text: $session.draft)
-                .font(.system(size: 14))
+                .font(.system(size: 15))
                 .scrollContentBackground(.hidden)
                 .padding(6)
-                .background(RoundedRectangle(cornerRadius: 9).fill(Color.surface))
+                .background(RoundedRectangle(cornerRadius: 9).fill(Color.cardFill))
+                .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Color.hairline))
             Button("Rewrite") { session.rewriteDraft() }
                 .buttonStyle(PrimaryButtonStyle())
                 .disabled(session.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 6)
+        .padding(.bottom, 10)
     }
 
     private func errorView(_ message: String) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(message).font(.system(size: 14))
+            Text(message).font(.system(size: 15))
             HStack(spacing: 8) {
                 Button("Try again") { session.retry() }.buttonStyle(GhostButtonStyle(bordered: true))
                 Button("Open Settings") { actions.openSettings(.models) }.buttonStyle(GhostButtonStyle(bordered: true))
@@ -213,10 +221,10 @@ struct RewritePanelView: View {
 
     private var refineRow: some View {
         HStack(spacing: 8) {
-            TextField("Change anything: sound less annoyed, say sorry first...", text: $session.refine)
+            TextField("", text: $session.refine)
                 .focused($refineFocused)
                 .font(.system(size: 14))
-                .inputField()
+                .inputField(placeholder: "Change anything: sound less annoyed, say sorry first...", text: session.refine, fontSize: 14)
                 .onSubmit { session.applyRefinement(session.refine) }
             ForEach(Self.tweaks, id: \.name) { tweak in
                 Button(tweak.name) { session.applyRefinement(tweak.note, label: tweak.name) }
@@ -315,7 +323,7 @@ struct ModelMenu: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
-        .foregroundStyle(.secondary)
+        .foregroundStyle(Color.textSecondary)
     }
 }
 

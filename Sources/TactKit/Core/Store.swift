@@ -134,12 +134,13 @@ public struct AppSettings: Codable, Sendable {
     public var restoreClipboard = true
     public var matchLanguage = true
     public var appearance = Appearance.system
+    public var themeID = ColorTheme.defaultID
 
     public init() {}
 
     enum CodingKeys: String, CodingKey {
         case setupDone, styles, lastStyleID, instantStyleID, defaultModel, connected, models, baseURLs
-        case hotkeys, keepHistory, showSend, restoreClipboard, matchLanguage, appearance
+        case hotkeys, keepHistory, showSend, restoreClipboard, matchLanguage, appearance, themeID
     }
 
     /// Reads whatever is present and falls back to the defaults, so that adding a setting later
@@ -161,6 +162,7 @@ public struct AppSettings: Codable, Sendable {
         restoreClipboard = (try? c.decode(Bool.self, forKey: .restoreClipboard)) ?? d.restoreClipboard
         matchLanguage = (try? c.decode(Bool.self, forKey: .matchLanguage)) ?? d.matchLanguage
         appearance = (try? c.decode(Appearance.self, forKey: .appearance)) ?? d.appearance
+        themeID = (try? c.decode(String.self, forKey: .themeID)) ?? d.themeID
     }
 }
 
@@ -184,7 +186,10 @@ public struct HistoryEntry: Codable, Identifiable, Hashable, Sendable {
 @Observable
 public final class AppStore {
     public var settings: AppSettings {
-        didSet { write(settings, to: settingsURL) }
+        didSet {
+            ActiveTheme.current = ColorTheme.named(settings.themeID)
+            write(settings, to: settingsURL)
+        }
     }
     public private(set) var history: [HistoryEntry]
 
@@ -203,6 +208,7 @@ public final class AppStore {
         decoder.dateDecodingStrategy = .iso8601
         settings = (try? Data(contentsOf: settingsURL)).flatMap { try? decoder.decode(AppSettings.self, from: $0) } ?? AppSettings()
         history = (try? Data(contentsOf: historyURL)).flatMap { try? decoder.decode([HistoryEntry].self, from: $0) } ?? []
+        ActiveTheme.current = ColorTheme.named(settings.themeID)
         pruneHistory()
     }
 
