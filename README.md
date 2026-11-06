@@ -328,8 +328,8 @@ Tact is an early release, version 0.1.0.
 | Build and install | Tested on macOS 27 with Xcode 27, Apple silicon |
 | Prompts, streaming parsers, storage, theme contrast | Covered by 24 automated tests |
 | Provider addresses and key rejection | Checked against live services, except DeepSeek, which couldn't be reached from the test network |
-| Full rewrites with a real API key | Not yet tested |
-| Reading and replacing text in chat apps | Not yet tested in real chat apps |
+| Full rewrites with a real API key | Working with Anthropic. Other providers not yet tried end to end |
+| Reading and replacing text in chat apps | Working in everyday use |
 
 Earlier macOS versions and Intel Macs haven't been tested.
 
